@@ -12,6 +12,7 @@ export interface FileNode {
 
 interface SidebarProps {
   files: FileNode[];
+  ideMode?: "dark" | "light";
   selectedFile?: string;
   onFileSelect: (fileName: string) => void;
   onToggleFolder: (id: string) => void;
@@ -20,7 +21,9 @@ interface SidebarProps {
   onRenameNode?: (id: string, name: string) => void;
 }
 
-export function Sidebar({ files, selectedFile, onFileSelect, onToggleFolder }: SidebarProps) {
+export function Sidebar({ files, ideMode = "dark", selectedFile, onFileSelect, onToggleFolder }: SidebarProps) {
+  const isDarkMode = ideMode === "dark";
+
   const FileTree = ({ nodes, depth = 0 }: { nodes: FileNode[]; depth?: number }) => {
     return (
       <div className="select-none">
@@ -28,8 +31,15 @@ export function Sidebar({ files, selectedFile, onFileSelect, onToggleFolder }: S
           <div key={node.id}>
             <div
               className={clsx(
-                "flex items-center py-1 px-2 cursor-pointer text-[#cccccc]",
-                node.type === "file" && node.name === selectedFile ? "bg-[#094771]" : "hover:bg-[#2a2d2e]"
+                "flex items-center py-1 px-2 cursor-pointer",
+                isDarkMode ? "text-[#cccccc]" : "text-[#1f1f1f]",
+                node.type === "file" && node.name === selectedFile
+                  ? isDarkMode
+                    ? "bg-[#094771]"
+                    : "bg-[#cce8ff]"
+                  : isDarkMode
+                    ? "hover:bg-[#2a2d2e]"
+                    : "hover:bg-[#e8e8e8]"
               )}
               style={{ paddingLeft: `${depth * 12 + 8}px` }}
               onClick={() => {
@@ -67,10 +77,15 @@ export function Sidebar({ files, selectedFile, onFileSelect, onToggleFolder }: S
   };
 
   return (
-    <div className="h-full bg-[#252526] text-[#cccccc] flex flex-col">
-      <div className="px-4 py-2 text-xs font-bold uppercase tracking-wider text-[#bbbbbb] flex justify-between items-center">
+    <div className={clsx("h-full flex flex-col", isDarkMode ? "bg-[#252526] text-[#cccccc]" : "bg-[#f3f3f3] text-[#333333]")}>
+      <div
+        className={clsx(
+          "px-4 py-2 text-xs font-bold uppercase tracking-wider flex justify-between items-center",
+          isDarkMode ? "text-[#bbbbbb]" : "text-[#666666]"
+        )}
+      >
         <span>Explorer</span>
-        <span className="text-lg leading-none cursor-pointer">...</span>
+        {/* <span className="text-lg leading-none cursor-pointer">...</span> */}
       </div>
       <div className="flex-1 overflow-y-auto">
         <FileTree nodes={files} />

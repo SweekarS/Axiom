@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Editor from "react-simple-code-editor";
 import Prism from "prismjs";
+import { Code2 } from "lucide-react";
 import "prismjs/components/prism-clike";
 import "prismjs/components/prism-javascript";
 import "prismjs/components/prism-typescript";
@@ -80,6 +81,8 @@ interface CodeEditorProps {
   onChange?: (code: string) => void;
   onSelectionChange?: (selectedCode: string) => void;
   fileName?: string;
+  zoomPercent?: number;
+  ideMode?: "dark" | "light";
 }
 
 export function CodeEditor({
@@ -88,6 +91,8 @@ export function CodeEditor({
   onChange,
   onSelectionChange,
   fileName = "main.py",
+  zoomPercent = 100,
+  ideMode = "dark",
 }: CodeEditorProps) {
   // If controlled, use props.code, else use local state initialized with initialCode
   const [internalCode, setInternalCode] = useState(initialCode || "");
@@ -95,6 +100,8 @@ export function CodeEditor({
 
   const isControlled = code !== undefined;
   const currentCode = isControlled ? code : internalCode;
+  const editorScale = zoomPercent / 100;
+  const isDarkMode = ideMode === "dark";
 
   const emitSelectionChange = () => {
     if (!onSelectionChange) return;
@@ -130,13 +137,13 @@ export function CodeEditor({
   }, [initialCode, isControlled]);
 
   return (
-    <div className="h-full flex flex-col bg-[#1e1e1e] overflow-hidden">
+    <div className={`h-full flex flex-col overflow-hidden ${isDarkMode ? "bg-[#1e1e1e]" : "bg-[#ffffff]"}`}>
       {/* Tabs */}
-      <div className="flex bg-[#2d2d2d] overflow-x-auto scrollbar-hide">
-        <div className="px-3 py-2 bg-[#1e1e1e] text-[#ffffff] text-sm border-t-2 border-blue-500 flex items-center min-w-[120px]">
-          <span className="mr-2 text-blue-400">TSX</span>
+      <div className={`flex overflow-x-auto scrollbar-hide ${isDarkMode ? "bg-[#2d2d2d]" : "bg-[#eff6ff]"}`}>
+        <div className={`px-3 py-2 text-sm border-t-2 border-blue-500 flex items-center min-w-[120px] ${isDarkMode ? "bg-[#1e1e1e] text-[#ffffff]" : "bg-[#ffffff] text-[#1f1f1f]"}`}>
+          <Code2 size={14} className="mr-2 text-blue-400" />
           {fileName}
-          <span className="ml-auto text-gray-400 hover:text-white cursor-pointer px-1">×</span>
+          <span className={`ml-auto cursor-pointer px-1 ${isDarkMode ? "text-gray-400 hover:text-white" : "text-blue-500 hover:text-blue-700"}`}>×</span>
         </div>
         
       </div>
@@ -153,13 +160,13 @@ export function CodeEditor({
           value={currentCode}
           onValueChange={handleChange}
           highlight={(code) => Prism.highlight(code, Prism.languages.javascript, "javascript")}
-          padding={20}
+          padding={Math.max(8, Math.round(20 * editorScale))}
           className="font-mono min-h-full"
           style={{
             fontFamily: '"Fira Code", "Fira Mono", monospace',
-            fontSize: 14,
-            backgroundColor: "#1e1e1e",
-            color: "#d4d4d4",
+            fontSize: Math.max(10, Math.round(14 * editorScale)),
+            backgroundColor: isDarkMode ? "#1e1e1e" : "#ffffff",
+            color: isDarkMode ? "#d4d4d4" : "#1f1f1f",
           }}
         />
       </div>

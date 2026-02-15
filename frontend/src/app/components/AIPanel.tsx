@@ -3,6 +3,7 @@ import { Bot, Loader2, Sparkles, CheckCircle2, Wand2, WandSparkles } from "lucid
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 interface AIPanelProps {
+  ideMode?: "dark" | "light";
   code: string;
   fileName: string;
   selectedCode: string;
@@ -25,7 +26,7 @@ interface OpenAIChatCompletionResponse {
   }>;
 }
 
-export function AIPanel({ code, fileName, selectedCode, onApplyActiveFileChange }: AIPanelProps) {
+export function AIPanel({ ideMode = "dark", code, fileName, selectedCode, onApplyActiveFileChange }: AIPanelProps) {
   const [explanation, setExplanation] = useState<string>("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [mode, setMode] = useState<AIPanelMode>("teacher");
@@ -33,6 +34,7 @@ export function AIPanel({ code, fileName, selectedCode, onApplyActiveFileChange 
   const [lastGeminiResponse, setLastGeminiResponse] = useState("");
   const [statusMessage, setStatusMessage] = useState<string>("Ready");
   const analysisRunRef = useRef(0);
+  const isDarkMode = ideMode === "dark";
 
   const normalizeIndent = (line: string) =>
     line.replace(/\t/g, "    ").match(/^\s*/)?.[0].length || 0;
@@ -418,14 +420,24 @@ ${snippet}`;
   };
 
   return (
-    <div className="h-full bg-[#1e1e1e] border-l border-[#414141] flex flex-col text-[#cccccc] font-sans">
-      <div className="h-9 px-4 flex items-center border-b border-[#414141] select-none bg-[#252526]">
+    <div
+      className={`h-full border-l flex flex-col font-sans ${
+        isDarkMode
+          ? "bg-[#1e1e1e] border-[#414141] text-[#cccccc]"
+          : "bg-[#ffffff] border-[#bfdbfe] text-[#0f172a]"
+      }`}
+    >
+      <div className={`h-9 px-4 flex items-center border-b select-none ${isDarkMode ? "border-[#414141] bg-[#252526]" : "border-[#bfdbfe] bg-[#eff6ff]"}`}>
         <Bot size={16} className="text-purple-400 mr-2" />
         <span className="text-xs font-bold uppercase tracking-wider">AI Assistant</span>
         <select
           value={mode}
           onChange={(e) => setMode(e.target.value as AIPanelMode)}
-          className="ml-3 text-[10px] uppercase tracking-wide bg-[#1f1f1f] border border-[#414141] rounded px-2 py-1 text-[#cccccc] outline-none"
+          className={`ml-3 text-[10px] uppercase tracking-wide border rounded px-2 py-1 outline-none ${
+            isDarkMode
+              ? "bg-[#1f1f1f] border-[#414141] text-[#cccccc]"
+              : "bg-[#ffffff] border-[#93c5fd] text-[#0f172a]"
+          }`}
         >
           <option value="teacher">Code Buddy</option>
           <option value="reviewer">Reviewer</option>
@@ -440,7 +452,11 @@ ${snippet}`;
           }
           disabled={mode !== "teacher" || isAnalyzing}
           onClick={() => void analyzeSelectedSnippet(selectedCode, fileName)}
-          className="ml-2 p-1 rounded border border-[#414141] text-[#cccccc] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#303030]"
+          className={`ml-2 p-1 rounded border disabled:opacity-40 disabled:cursor-not-allowed ${
+            isDarkMode
+              ? "border-[#414141] text-[#cccccc] hover:bg-[#303030]"
+              : "border-[#93c5fd] text-[#0f172a] hover:bg-[#eff6ff]"
+          }`}
         >
           <Wand2 size={12} />
         </button>
@@ -458,10 +474,14 @@ ${snippet}`;
               value={vibePrompt}
               onChange={(e) => setVibePrompt(e.target.value)}
               placeholder="Example: Refactor this component for readability and keep behavior unchanged."
-              className="w-full min-h-28 bg-[#1f1f1f] border border-[#414141] rounded p-2 text-sm outline-none focus:border-blue-500 resize-y"
+              className={`w-full min-h-28 border rounded p-2 text-sm outline-none focus:border-blue-500 resize-y ${
+                isDarkMode
+                  ? "bg-[#1f1f1f] border-[#414141]"
+                  : "bg-[#ffffff] border-[#93c5fd]"
+              }`}
             />
 
-            <div className="text-xs text-[#9da1a6] border border-[#414141] rounded p-2 bg-[#1f1f1f]">
+            <div className={`text-xs rounded p-2 border ${isDarkMode ? "text-[#9da1a6] border-[#414141] bg-[#1f1f1f]" : "text-[#1d4ed8] border-[#bfdbfe] bg-[#f8fbff]"}`}>
               Active file: <span className="text-blue-300">{fileName || "None selected"}</span>
             </div>
 
@@ -474,16 +494,16 @@ ${snippet}`;
               Run Vibe Task
             </button>
 
-            <div className="text-xs text-[#9da1a6] border border-[#414141] rounded p-2 bg-[#1f1f1f]">
+            <div className={`text-xs rounded p-2 border ${isDarkMode ? "text-[#9da1a6] border-[#414141] bg-[#1f1f1f]" : "text-[#1d4ed8] border-[#bfdbfe] bg-[#f8fbff]"}`}>
               {statusMessage}
             </div>
           </div>
         ) : isAnalyzing ? (
            <div className="space-y-3 animate-pulse">
-              <div className="h-4 bg-[#333] rounded w-3/4"></div>
-              <div className="h-4 bg-[#333] rounded w-1/2"></div>
-              <div className="h-4 bg-[#333] rounded w-full"></div>
-              <div className="h-4 bg-[#333] rounded w-5/6"></div>
+              <div className={`h-4 rounded w-3/4 ${isDarkMode ? "bg-[#333]" : "bg-[#dbeafe]"}`}></div>
+              <div className={`h-4 rounded w-1/2 ${isDarkMode ? "bg-[#333]" : "bg-[#dbeafe]"}`}></div>
+              <div className={`h-4 rounded w-full ${isDarkMode ? "bg-[#333]" : "bg-[#dbeafe]"}`}></div>
+              <div className={`h-4 rounded w-5/6 ${isDarkMode ? "bg-[#333]" : "bg-[#dbeafe]"}`}></div>
            </div>
         ) : (
         <div className="space-y-4 text-sm leading-relaxed">
@@ -547,18 +567,18 @@ ${snippet}`;
         )}
       </div>
 
-      <div className="p-3 bg-[#252526] border-t border-[#414141]">
-        <div className="text-xs text-[#858585] mb-2 flex items-center justify-between">
+      <div className={`p-3 border-t ${isDarkMode ? "bg-[#252526] border-[#414141]" : "bg-[#eff6ff] border-[#bfdbfe]"}`}>
+        <div className={`text-xs mb-2 flex items-center justify-between ${isDarkMode ? "text-[#858585]" : "text-[#1d4ed8]"}`}>
           <span>Status</span>
           <span className="flex items-center gap-1 text-green-500">
             <CheckCircle2 size={10} /> Active
           </span>
         </div>
-        <div className="w-full bg-[#3c3c3c] h-1 rounded overflow-hidden">
+        <div className={`w-full h-1 rounded overflow-hidden ${isDarkMode ? "bg-[#3c3c3c]" : "bg-[#bfdbfe]"}`}>
           {isAnalyzing ? (
             <div className="h-full bg-purple-500 animate-progress"></div>
           ) : (
-            <div className="h-full w-full bg-[#3c3c3c]"></div>
+            <div className={`h-full w-full ${isDarkMode ? "bg-[#3c3c3c]" : "bg-[#bfdbfe]"}`}></div>
           )}
         </div>
       </div>

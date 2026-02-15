@@ -45,6 +45,7 @@ const countChangedLines = (before: string, after: string): number => {
 };
 
 export default function App() {
+  const [ideMode, setIdeMode] = useState<"dark" | "light">("dark");
   const [activeActivity, setActiveActivity] = useState("explorer");
   const [currentFile, setCurrentFile] = useState("main.py");
   const [visiblePanels, setVisiblePanels] = useState({
@@ -52,6 +53,10 @@ export default function App() {
       ai: true,
       terminal: true
   });
+  const [zoomPercent, setZoomPercent] = useState(100);
+  const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
+  const settingsMenuRef = useRef<HTMLDivElement | null>(null);
+  const isDarkMode = ideMode === "dark";
 
   // --- File System State ---
 
@@ -124,6 +129,34 @@ export default function App() {
       previousAiFileRef.current = currentFile;
     }
   }, [currentFile, filesContent]);
+
+  useEffect(() => {
+    if (!settingsMenuOpen) return;
+
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (!settingsMenuRef.current) return;
+      if (!settingsMenuRef.current.contains(event.target as Node)) {
+        setSettingsMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+    };
+  }, [settingsMenuOpen]);
+
+  const handleZoomIn = () => {
+    setZoomPercent((prev) => Math.min(prev + 10, 200));
+  };
+
+  const handleZoomOut = () => {
+    setZoomPercent((prev) => Math.max(prev - 10, 50));
+  };
+
+  const handleZoomReset = () => {
+    setZoomPercent(100);
+  };
 
   // --- File System Operations ---
 
@@ -427,6 +460,15 @@ export default function App() {
         case "toggle_word_wrap":
              alert("Word wrap toggled (simulated)");
              break;
+        case "zoom_in":
+            handleZoomIn();
+            break;
+        case "zoom_out":
+            handleZoomOut();
+            break;
+        case "zoom_reset":
+            handleZoomReset();
+            break;
         case "start_debugging":
             runCurrentPythonFile("debug");
             break;
@@ -476,9 +518,17 @@ export default function App() {
   };
 
   return (
-    <div className="flex flex-col h-screen w-screen bg-[#1e1e1e] text-[#cccccc] overflow-hidden font-sans">
+    <div
+      className={`flex flex-col h-screen w-screen overflow-hidden font-sans ${
+        isDarkMode ? "bg-[#1e1e1e] text-[#cccccc]" : "bg-[#ffffff] text-[#333333]"
+      }`}
+    >
       {/* Title Bar (VS Code style) */}
-      <div className="h-8 bg-[#3c3c3c] flex items-center select-none justify-between border-b border-[#1e1e1e]">
+      <div
+        className={`h-8 flex items-center select-none justify-between border-b ${
+          isDarkMode ? "bg-[#3c3c3c] border-[#1e1e1e]" : "bg-[#dddddd] border-[#c8c8c8]"
+        }`}
+      >
         <div className="flex items-center h-full">
            <div className="flex gap-2 ml-3 mr-4">
              <div className="w-3 h-3 rounded-full bg-[#ff5f56]"></div>
@@ -489,18 +539,122 @@ export default function App() {
            <MenuBar onAction={handleMenuAction} visiblePanels={visiblePanels} />
         </div>
         
-        <div className="text-xs text-[#cccccc] opacity-80 font-medium absolute left-1/2 transform -translate-x-1/2">
-            {currentFile} - vscode-project
+        <div
+          className={`text-xs opacity-80 font-medium absolute left-1/2 transform -translate-x-1/2 ${
+            isDarkMode ? "text-[#cccccc]" : "text-[#1f1f1f]"
+          }`}
+        >
+            TwinStack
         </div>
 
         <div className="flex items-center gap-3 pr-2">
              <button 
                 onClick={() => setVisiblePanels(p => ({ ...p, ai: !p.ai }))}
-                className={`text-xs px-2 py-0.5 rounded border border-[#555] hover:bg-[#505050] transition-colors ${visiblePanels.ai ? 'bg-[#505050]' : ''}`}
+                className={`text-xs px-2 py-0.5 rounded border transition-colors ${
+                  isDarkMode
+                    ? `border-[#555] hover:bg-[#505050] ${visiblePanels.ai ? "bg-[#505050]" : ""}`
+                    : `border-[#c8c8c8] hover:bg-[#e8e8e8] ${visiblePanels.ai ? "bg-[#e7e7e7]" : ""}`
+                }`}
              >
                 {visiblePanels.ai ? 'Hide AI' : 'Show AI'}
              </button>
-             <Settings size={16} className="text-[#cccccc] hover:text-white cursor-pointer" />
+             <div className="relative" ref={settingsMenuRef}>
+               <button
+                 type="button"
+                 onClick={() => setSettingsMenuOpen((prev) => !prev)}
+                 className={`p-1 rounded transition-colors ${
+                   isDarkMode ? "hover:bg-[#505050]" : "hover:bg-[#e8e8e8]"
+                 }`}
+                 title="Settings"
+               >
+                 <Settings
+                   size={16}
+                   className={`cursor-pointer ${isDarkMode ? "text-[#cccccc] hover:text-white" : "text-[#1f1f1f]"}`}
+                 />
+               </button>
+               {settingsMenuOpen && (
+                 <div
+                   className={`absolute right-0 top-8 w-44 rounded shadow-lg p-1 z-50 border ${
+                     isDarkMode
+                       ? "bg-[#252526] border-[#414141]"
+                       : "bg-white border-[#c8c8c8]"
+                   }`}
+                 >
+                   <div
+                     className={`px-2 py-1 text-[10px] border-b mb-1 ${
+                      isDarkMode
+                        ? "text-[#9da1a6] border-[#414141]"
+                        : "text-[#666666] border-[#e5e5e5]"
+                     }`}
+                   >
+                     IDE Mode
+                   </div>
+                   <button
+                     type="button"
+                     onClick={() => setIdeMode("dark")}
+                     className={`w-full text-left text-xs px-2 py-1.5 rounded ${
+                       isDarkMode ? "bg-[#094771] text-white" : "hover:bg-[#e8e8e8]"
+                     }`}
+                   >
+                     Dark Mode
+                   </button>
+                   <button
+                     type="button"
+                     onClick={() => setIdeMode("light")}
+                     className={`w-full text-left text-xs px-2 py-1.5 rounded ${
+                       !isDarkMode ? "bg-[#e7e7e7] text-[#333333]" : "hover:bg-[#094771]"
+                     }`}
+                   >
+                     Light+ Mode
+                   </button>
+                   <div
+                     className={`px-2 py-1 text-[10px] border-t mt-1 ${
+                      isDarkMode
+                        ? "text-[#9da1a6] border-[#414141]"
+                        : "text-[#666666] border-[#e5e5e5]"
+                     }`}
+                   >
+                     Editor Zoom
+                   </div>
+                   <button
+                     type="button"
+                    onClick={handleZoomIn}
+                    className={`w-full text-left text-xs px-2 py-1.5 rounded ${
+                      isDarkMode ? "hover:bg-[#094771]" : "hover:bg-[#e8e8e8]"
+                    }`}
+                  >
+                     Zoom In
+                   </button>
+                   <button
+                     type="button"
+                    onClick={handleZoomOut}
+                    className={`w-full text-left text-xs px-2 py-1.5 rounded ${
+                      isDarkMode ? "hover:bg-[#094771]" : "hover:bg-[#e8e8e8]"
+                    }`}
+                  >
+                     Zoom Out
+                   </button>
+                   <button
+                     type="button"
+                    onClick={handleZoomReset}
+                    className={`w-full text-left text-xs px-2 py-1.5 rounded ${
+                      isDarkMode ? "hover:bg-[#094771]" : "hover:bg-[#e8e8e8]"
+                    }`}
+                  >
+                     Reset Zoom
+                   </button>
+                   <div
+                     className={`px-2 py-1 text-[10px] border-t mt-1 ${
+                      isDarkMode
+                        ? "text-[#9da1a6] border-[#414141]"
+                        : "text-[#666666] border-[#e5e5e5]"
+                     }`}
+                   >
+                     Zoom: {zoomPercent}%
+                   </div>
+                 </div>
+               )}
+             </div>
         </div>
       </div>
 
@@ -522,9 +676,15 @@ export default function App() {
           {/* Sidebar Panel */}
           {visiblePanels.sidebar && activeActivity === 'explorer' && (
             <>
-                <Panel defaultSize={15} minSize={10} maxSize={25} className="bg-[#252526]">
+                <Panel
+                  defaultSize={15}
+                  minSize={10}
+                  maxSize={25}
+                  className={isDarkMode ? "bg-[#252526]" : "bg-[#f3f3f3]"}
+                >
                     <Sidebar 
                         files={filesTree}
+                        ideMode={ideMode}
                         selectedFile={currentFile}
                         onFileSelect={setCurrentFile} 
                         onToggleFolder={handleToggleFolder}
@@ -541,12 +701,18 @@ export default function App() {
           <Panel defaultSize={visiblePanels.ai ? 60 : 80} minSize={30}>
             <PanelGroup direction="vertical">
               {/* Editor */}
-              <Panel defaultSize={visiblePanels.terminal ? 70 : 100} minSize={20} className="bg-[#1e1e1e]">
+              <Panel
+                defaultSize={visiblePanels.terminal ? 70 : 100}
+                minSize={20}
+                className={isDarkMode ? "bg-[#1e1e1e]" : "bg-[#ffffff]"}
+              >
                 {currentFile ? (
                     <CodeEditor 
                         key={currentFile} 
                         fileName={currentFile} 
                         code={currentCode}
+                        ideMode={ideMode}
+                        zoomPercent={zoomPercent}
                         onChange={handleCodeChange}
                         onSelectionChange={setSelectedCode}
                     />
@@ -563,8 +729,9 @@ export default function App() {
               {visiblePanels.terminal && (
                   <>
                     <PanelResizeHandle className="h-[1px] bg-[#414141] hover:bg-blue-500 transition-colors" />
-                    <Panel defaultSize={30} minSize={10} className="bg-[#1e1e1e]">
+                    <Panel defaultSize={30} minSize={10} className={isDarkMode ? "bg-[#1e1e1e]" : "bg-[#ffffff]"}>
                         <BottomPanel
+                          ideMode={ideMode}
                           terminalCommand={terminalCommand}
                           terminalLines={terminalLines}
                           onTerminalCommandChange={setTerminalCommand}
@@ -580,8 +747,8 @@ export default function App() {
           {visiblePanels.ai && (
             <>
                 <PanelResizeHandle className="w-[1px] bg-[#414141] hover:bg-blue-500 transition-colors" />
-                <Panel defaultSize={25} minSize={15} maxSize={40} className="bg-[#1e1e1e]">
-                    <AIPanel code={aiPanelCode} fileName={currentFile} selectedCode={selectedCode} onApplyActiveFileChange={handleApplyAIChangeToActiveFile}/>
+                <Panel defaultSize={25} minSize={15} maxSize={40} className={isDarkMode ? "bg-[#1e1e1e]" : "bg-[#ffffff]"}>
+                    <AIPanel ideMode={ideMode} code={aiPanelCode} fileName={currentFile} selectedCode={selectedCode} onApplyActiveFileChange={handleApplyAIChangeToActiveFile}/>
                 </Panel>
             </>
           )}

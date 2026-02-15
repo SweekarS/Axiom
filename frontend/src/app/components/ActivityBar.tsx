@@ -1,5 +1,5 @@
 import React from "react";
-import { Files, Search, GitGraph, Play, Box } from "lucide-react";
+import { Files} from "lucide-react";
 import { clsx } from "clsx";
 
 interface ActivityBarProps {
@@ -10,10 +10,10 @@ interface ActivityBarProps {
 export function ActivityBar({ activeTab, onTabChange }: ActivityBarProps) {
   const icons = [
     { id: "explorer", icon: Files },
-    { id: "search", icon: Search },
-    { id: "git", icon: GitGraph },
-    { id: "debug", icon: Play },
-    { id: "extensions", icon: Box },
+    //{ id: "search", icon: Search },
+    // { id: "git", icon: GitGraph },
+    // { id: "debug", icon: Play },
+    // { id: "extensions", icon: Box },
   ];
 
   return (
