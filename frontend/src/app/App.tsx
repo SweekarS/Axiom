@@ -283,6 +283,18 @@ export default function App() {
 
   const currentCode = filesContent[currentFile] || "";
 
+  const handleApplyAIChangeToActiveFile = (newCode: string) => {
+    setFilesContent((prev) => {
+      if (!currentFile || !Object.prototype.hasOwnProperty.call(prev, currentFile)) {
+        return prev;
+      }
+      return {
+        ...prev,
+        [currentFile]: newCode,
+      };
+    });
+  };
+
   return (
     <div className="flex flex-col h-screen w-screen bg-[#1e1e1e] text-[#cccccc] overflow-hidden font-sans">
       {/* Title Bar (VS Code style) */}
@@ -383,7 +395,11 @@ export default function App() {
             <>
                 <PanelResizeHandle className="w-[1px] bg-[#414141] hover:bg-blue-500 transition-colors" />
                 <Panel defaultSize={25} minSize={15} maxSize={40} className="bg-[#1e1e1e]">
-                    <AIPanel code={currentCode} fileName={currentFile} />
+                    <AIPanel
+                      code={currentCode}
+                      fileName={currentFile}
+                      onApplyActiveFileChange={handleApplyAIChangeToActiveFile}
+                    />
                 </Panel>
             </>
           )}

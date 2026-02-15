@@ -1,18 +1,26 @@
-import React, { useState, useEffect } from "react";
-import { Bot, Loader2, Sparkles, CheckCircle2 } from "lucide-react";
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import React, { useEffect, useState } from "react";
+import { Bot, Loader2, Sparkles, CheckCircle2, WandSparkles } from "lucide-react";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 interface AIPanelProps {
   code: string;
   fileName: string;
+  onApplyActiveFileChange: (newCode: string) => void;
 }
 
-type AIPanelMode = "reviewer" | "teacher";
+type AIPanelMode = "reviewer" | "teacher" | "vibe";
 
-export function AIPanel({ code, fileName }: AIPanelProps) {
+interface VibeResponse {
+  summary?: string;
+  updatedContent?: string;
+}
+
+export function AIPanel({ code, fileName, onApplyActiveFileChange }: AIPanelProps) {
   const [explanation, setExplanation] = useState<string>("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [mode, setMode] = useState<AIPanelMode>("teacher");
+  const [vibePrompt, setVibePrompt] = useState("");
+  const [statusMessage, setStatusMessage] = useState<string>("Ready");
 
   const buildPrompt = (modeValue: AIPanelMode, codeContent: string, name: string) => {
     if (modeValue === "teacher") {
@@ -48,8 +56,21 @@ Response format:
 ]`;
   };
 
+  const getModel = () => {
+    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+    if (!apiKey) {
+      throw new Error("Missing VITE_GEMINI_API_KEY in environment.");
+    }
+
+    const genAI = new GoogleGenerativeAI(apiKey);
+    return genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+  };
+
   useEffect(() => {
-    // Debounce the analysis to simulate real-time but not instantaneous processing
+    if (mode === "vibe") {
+      return;
+    }
+
     const timer = setTimeout(() => {
       analyzeCode(code, fileName);
     }, 1500);
@@ -62,11 +83,9 @@ Response format:
     
     // Simulate API delay
     setTimeout(async () => {
-      const genAI = new GoogleGenerativeAI("AIzaSyCpuECvNqECP-V-DDkt7OnTdlp6f1a-6h0");
-      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-      const prompt = buildPrompt(mode, codeContent, name);
-
       try {
+        const model = getModel();
+        const prompt = buildPrompt(mode, codeContent, name);
         const result = await model.generateContent(prompt);
         const response = await result.response;
         const text = response.text();
@@ -83,12 +102,77 @@ Response format:
           .join("\n");
 
         setExplanation(displayString || "No functions found for analysis.");
-      } catch {
-        setExplanation("Unable to parse AI response. Try editing code or switching mode.");
+      } catch (error) {
+        if (error instanceof Error && error.message.includes("VITE_GEMINI_API_KEY")) {
+          setExplanation("Set VITE_GEMINI_API_KEY to enable AI features.");
+        } else {
+          setExplanation("Unable to parse AI response. Try editing code or switching mode.");
+        }
       } finally {
         setIsAnalyzing(false);
       }
     }, 1000);
+  };
+
+  const runVibeTask = async () => {
+    if (!fileName || !code) {
+      setStatusMessage("No active file content available.");
+      return;
+    }
+
+    if (!vibePrompt.trim()) {
+      setStatusMessage("Enter a task prompt first.");
+      return;
+    }
+
+    setIsAnalyzing(true);
+    setStatusMessage("Generating edits...");
+
+    try {
+      const model = getModel();
+      const prompt = `You are a coding agent inside an IDE.
+Complete the user's request by editing only the active file.
+Return only strict JSON with this shape:
+{
+  "summary": "short summary",
+  "updatedContent": "full updated file content"
+}
+
+User request:
+${vibePrompt}
+
+Active file:
+${fileName}
+
+Current content:
+${code}`;
+
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const raw = response.text();
+      const cleaned = raw.replace(/```json\s*/g, "").replace(/```/g, "").trim();
+
+      const parsed = JSON.parse(cleaned) as VibeResponse;
+      if (!parsed.updatedContent || typeof parsed.updatedContent !== "string") {
+        setStatusMessage("Agent returned no applicable edit.");
+        return;
+      }
+
+      onApplyActiveFileChange(parsed.updatedContent);
+      setStatusMessage(
+        parsed.summary
+          ? `${parsed.summary} (updated ${fileName})`
+          : `Applied update to ${fileName}.`
+      );
+    } catch (error) {
+      if (error instanceof Error && error.message.includes("VITE_GEMINI_API_KEY")) {
+        setStatusMessage("Set VITE_GEMINI_API_KEY to use Vibe Coder.");
+      } else {
+        setStatusMessage("Failed to apply edits. Try refining the prompt.");
+      }
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   return (
@@ -103,12 +187,43 @@ Response format:
         >
           <option value="teacher">Code Buddy</option>
           <option value="reviewer">Reviewer</option>
+          <option value="vibe">Vibe Coder</option>
         </select>
         {isAnalyzing && <Loader2 size={14} className="ml-auto animate-spin text-blue-400" />}
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
-        {isAnalyzing ? (
+        {mode === "vibe" ? (
+          <div className="space-y-4">
+            <div className="text-xs text-[#9da1a6] leading-relaxed">
+              Write a task prompt. Vibe Coder edits only the active editor file.
+            </div>
+
+            <textarea
+              value={vibePrompt}
+              onChange={(e) => setVibePrompt(e.target.value)}
+              placeholder="Example: Refactor this component for readability and keep behavior unchanged."
+              className="w-full min-h-28 bg-[#1f1f1f] border border-[#414141] rounded p-2 text-sm outline-none focus:border-blue-500 resize-y"
+            />
+
+            <div className="text-xs text-[#9da1a6] border border-[#414141] rounded p-2 bg-[#1f1f1f]">
+              Active file: <span className="text-blue-300">{fileName || "None selected"}</span>
+            </div>
+
+            <button
+              disabled={isAnalyzing}
+              onClick={runVibeTask}
+              className="w-full flex items-center justify-center gap-2 bg-[#0e639c] hover:bg-[#1177bb] disabled:bg-[#3a3a3a] disabled:cursor-not-allowed rounded py-2 text-sm font-medium transition-colors"
+            >
+              <WandSparkles size={14} />
+              Run Vibe Task
+            </button>
+
+            <div className="text-xs text-[#9da1a6] border border-[#414141] rounded p-2 bg-[#1f1f1f]">
+              {statusMessage}
+            </div>
+          </div>
+        ) : isAnalyzing ? (
            <div className="space-y-3 animate-pulse">
               <div className="h-4 bg-[#333] rounded w-3/4"></div>
               <div className="h-4 bg-[#333] rounded w-1/2"></div>
