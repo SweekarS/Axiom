@@ -87,7 +87,7 @@ export function CodeEditor({
   code,
   onChange,
   onSelectionChange,
-  fileName = "App.tsx",
+  fileName = "main.py",
 }: CodeEditorProps) {
   // If controlled, use props.code, else use local state initialized with initialCode
   const [internalCode, setInternalCode] = useState(initialCode || "");
@@ -138,10 +138,7 @@ export function CodeEditor({
           {fileName}
           <span className="ml-auto text-gray-400 hover:text-white cursor-pointer px-1">×</span>
         </div>
-        <div className="px-3 py-2 bg-[#2d2d2d] text-[#969696] text-sm border-t-2 border-transparent hover:bg-[#2a2d2e] flex items-center min-w-[120px] cursor-pointer">
-          <span className="mr-2 text-yellow-400">JSON</span>
-          package.json
-        </div>
+        
       </div>
 
       {/* Editor Area */}

@@ -46,7 +46,7 @@ const countChangedLines = (before: string, after: string): number => {
 
 export default function App() {
   const [activeActivity, setActiveActivity] = useState("explorer");
-  const [currentFile, setCurrentFile] = useState("App.tsx");
+  const [currentFile, setCurrentFile] = useState("main.py");
   const [visiblePanels, setVisiblePanels] = useState({
       sidebar: true,
       ai: true,
@@ -58,48 +58,50 @@ export default function App() {
   const initialFilesTree: FileNode[] = [
     {
       id: "root-folder",
-      name: "vscode-project",
+      name: "python-project",
       type: "folder",
       isOpen: true,
       children: [
         {
-          id: "src",
-          name: "src",
+          id: "app",
+          name: "app",
           type: "folder",
           isOpen: true,
           children: [
-            { id: "app.tsx", name: "App.tsx", type: "file" },
-            { id: "index.css", name: "index.css", type: "file" },
-            { id: "main.tsx", name: "main.tsx", type: "file" },
+            { id: "__init__.py", name: "__init__.py", type: "file" },
+            { id: "main.py", name: "main.py", type: "file" },
+            { id: "utils.py", name: "utils.py", type: "file" },
             {
-              id: "components",
-              name: "components",
+              id: "services",
+              name: "services",
               type: "folder",
               isOpen: false,
               children: [
-                { id: "button.tsx", name: "Button.tsx", type: "file" },
-                { id: "card.tsx", name: "Card.tsx", type: "file" },
+                { id: "data_service.py", name: "data_service.py", type: "file" },
               ],
             },
           ],
         },
-        { id: "package.json", name: "package.json", type: "file" },
-        { id: "tsconfig.json", name: "tsconfig.json", type: "file" },
-        { id: "index.html", name: "index.html", type: "file" },
+        {
+          id: "tests",
+          name: "tests",
+          type: "folder",
+          isOpen: false,
+          children: [{ id: "test_main.py", name: "test_main.py", type: "file" }],
+        },
+        { id: "requirements.txt", name: "requirements.txt", type: "file" },
+        { id: ".gitignore", name: ".gitignore", type: "file" },
         { id: "readme.md", name: "README.md", type: "file" },
       ],
     },
   ];
 
   const initialFilesContent: Record<string, string> = {
-    "App.tsx": `import React from 'react';\n\nexport default function App() {\n  return (\n    <div className="p-4">\n      <h1>Hello World</h1>\n    </div>\n  );\n}`,
-    "Button.tsx": `import React from 'react';\n\nexport function Button({ children }) {\n  return (\n    <button className="px-4 py-2 bg-blue-500 text-white rounded">\n      {children}\n    </button>\n  );\n}`,
-    "package.json": `{\n  "name": "vscode-clone",\n  "version": "1.0.0",\n  "main": "index.js",\n  "license": "MIT"\n}`,
-    "index.css": `body {\n  background-color: #1e1e1e;\n  color: #cccccc;\n}`,
-    "index.html": `<!doctype html>\n<html lang="en">\n  <head>\n    <meta charset="UTF-8" />\n    <link rel="icon" type="image/svg+xml" href="/vite.svg" />\n    <meta name="viewport" content="width=device-width, initial-scale=1.0" />\n    <title>Vite + React + TS</title>\n  </head>\n  <body>\n    <div id="root"></div>\n    <script type="module" src="/src/main.tsx"></script>\n  </body>\n</html>`,
-    "main.tsx": `import React from 'react'\nimport ReactDOM from 'react-dom/client'\nimport App from './App'\nimport './index.css'\n\nReactDOM.createRoot(document.getElementById('root')!).render(\n  <React.StrictMode>\n    <App />\n  </React.StrictMode>,\n)`,
-    "Card.tsx": `import React from 'react';\n\nexport function Card({ title, content }) {\n  return (\n    <div className="border border-gray-700 p-4 rounded bg-gray-800">\n      <h3 className="text-lg font-bold mb-2">{title}</h3>\n      <p>{content}</p>\n    </div>\n  );\n}`,
-    "README.md": `# VS Code Clone\n\nThis is a functional clone of the VS Code interface built with React and Tailwind CSS.`
+    "__init__.py": `"""Application package."""\n`,
+    "main.py": `from utils import greet\nfrom data_service import get_items\n\n\ndef main() -> None:\n    print(greet("World"))\n    for item in get_items():\n        print(item)\n\n\nif __name__ == "__main__":\n    main()\n`,
+    "utils.py": `def greet(name: str) -> str:\n    return f"Hello, {name}!"\n`,
+    "data_service.py": `def get_items() -> list[str]:\n    return ["alpha", "beta", "gamma"]\n`,
+    "test_main.py": `from utils import greet\n\n\ndef test_greet() -> None:\n    assert greet("World") == "Hello, World!"\n`,
   };
 
   const [filesTree, setFilesTree] = useState<FileNode[]>(initialFilesTree);
