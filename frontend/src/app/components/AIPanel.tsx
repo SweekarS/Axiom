@@ -22,6 +22,7 @@ export function AIPanel({ code, fileName, selectedCode, onApplyActiveFileChange 
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [mode, setMode] = useState<AIPanelMode>("teacher");
   const [vibePrompt, setVibePrompt] = useState("");
+  const [lastGeminiResponse, setLastGeminiResponse] = useState("");
   const [statusMessage, setStatusMessage] = useState<string>("Ready");
   const analysisRunRef = useRef(0);
 
@@ -158,6 +159,7 @@ ${batchSource}`;
     analysisRunRef.current = runId;
     setIsAnalyzing(true);
     setExplanation("Analyzing selected code in Code Buddy mode...");
+    setLastGeminiResponse("");
 
     const genAI = new GoogleGenerativeAI("AIzaSyBLzpDN_C2TsvX70n22V8eqfpLEBXRqZ7Q");
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
@@ -174,6 +176,9 @@ ${batchSource}`;
           const prompt = buildBatchPrompt("teacher", batch, `${name} (selected)`);
           const result = await model.generateContent(prompt);
           const response = await result.response;
+          setLastGeminiResponse((prev) =>
+            prev ? `${prev}\n\n${response.text().trim()}` : response.text().trim()
+          );
           const parsed = parseJsonFromModelText(response.text());
           const parsedByName = new Map(parsed.map((item) => [item.functionName, item.explanation]));
           setExplanation((prev) => {
@@ -209,6 +214,7 @@ Selected code:
 ${snippet}`;
       const result = await model.generateContent(prompt);
       const response = await result.response;
+      setLastGeminiResponse(response.text().trim());
       setExplanation(`### Selected Code Insight\n${response.text().trim()}`);
     } catch {
       setExplanation("Unable to analyze selected code.");
@@ -224,6 +230,7 @@ ${snippet}`;
     analysisRunRef.current = runId;
     setIsAnalyzing(true);
     setExplanation("");
+    setLastGeminiResponse("");
 
     const extractedFunctions = extractPythonFunctions(codeContent);
     if (extractedFunctions.length === 0) {
@@ -253,6 +260,9 @@ ${snippet}`;
         const prompt = buildBatchPrompt(mode, batch, name);
         const result = await model.generateContent(prompt);
         const response = await result.response;
+        setLastGeminiResponse((prev) =>
+          prev ? `${prev}\n\n${response.text().trim()}` : response.text().trim()
+        );
         const parsed = parseJsonFromModelText(response.text());
         const parsedByName = new Map(parsed.map((item) => [item.functionName, item.explanation]));
 
@@ -292,13 +302,14 @@ ${snippet}`;
     };
   }, [code, fileName, mode]);
 
-  const runVibeTask = async () => {
+  const runVibeTask = async (promptOverride?: string) => {
     if (!fileName || !code) {
       setStatusMessage("No active file content available.");
       return;
     }
 
-    if (!vibePrompt.trim()) {
+    const taskPrompt = (promptOverride ?? vibePrompt).trim();
+    if (!taskPrompt) {
       setStatusMessage("Enter a task prompt first.");
       return;
     }
@@ -317,7 +328,7 @@ Return only strict JSON with this shape:
 }
 
 User request:
-${vibePrompt}
+${taskPrompt}
 
 Active file:
 ${fileName}
@@ -351,6 +362,18 @@ ${code}`;
     } finally {
       setIsAnalyzing(false);
     }
+  };
+
+  const handleReviewerVibe = () => {
+    const promptFromReviewer = lastGeminiResponse.replace(/```json\s*/g, "").replace(/```/g, "").trim() || explanation.replace(/```json\s*/g, "").replace(/```/g, "").replace(/<[^>]*>/g, "").trim();
+    if (!promptFromReviewer) {
+      setStatusMessage("No reviewer response available to run as a Vibe task.");
+      return;
+    }
+
+    setVibePrompt(promptFromReviewer);
+    setMode("vibe");
+    void runVibeTask(promptFromReviewer);
   };
 
   return (
@@ -403,7 +426,7 @@ ${code}`;
 
             <button
               disabled={isAnalyzing}
-              onClick={runVibeTask}
+              onClick={() => void runVibeTask()}
               className="w-full flex items-center justify-center gap-2 bg-[#0e639c] hover:bg-[#1177bb] disabled:bg-[#3a3a3a] disabled:cursor-not-allowed rounded py-2 text-sm font-medium transition-colors"
             >
               <WandSparkles size={14} />
@@ -467,6 +490,17 @@ ${code}`;
               <Sparkles size={12} className="text-yellow-500" />
               <span>AI analysis generated based on code patterns.</span>
             </div>
+          )}
+
+          {mode === "reviewer" && !isAnalyzing && lastGeminiResponse.trim().length > 0 && (
+            <button
+              type="button"
+              onClick={handleReviewerVibe}
+              className="w-full mt-3 flex items-center justify-center gap-2 bg-[#0e639c] hover:bg-[#1177bb] rounded py-2 text-sm font-medium transition-colors"
+            >
+              <WandSparkles size={14} />
+              Vibe
+            </button>
           )}
         </div>
         )}
